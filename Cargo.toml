@@ -9,6 +9,8 @@ edition = "2021"
 rand = "0.8.5"
 exr = "1.72.0"
 image = "0.25.1"
+num_cpus = "1.16.0"
+indicatif = "0.17.8"
 
 [dev-dependencies]
 criterion = "0.5.1"

@@ -1,5 +1,7 @@
 extern crate buddhabrot;
 
+use std::sync::{Arc, Mutex};
+
 use buddhabrot::{color::Rgb, images::Image, sample::sample};
 use criterion::{criterion_group, criterion_main, Criterion};
 
@@ -7,10 +9,11 @@ use criterion::{criterion_group, criterion_main, Criterion};
 const IM_WIDTH: usize = 256;
 const IM_HEIGHT: usize = 256;
 const IM_SIZE: usize = IM_WIDTH * IM_HEIGHT;
+const PROGRESS_UPDATE: usize = IM_WIDTH;
 
 fn bench() {
-    let mut im = Image::<Rgb, IM_SIZE, IM_WIDTH>::new();
-    sample(&mut im, 10000, 20);
+    let im = Image::<Rgb>::new(IM_SIZE, IM_WIDTH);
+    sample(Arc::new(Mutex::new(im)), 10000, 20, PROGRESS_UPDATE);
 } 
 
 fn criterion_bench(c: &mut Criterion) {

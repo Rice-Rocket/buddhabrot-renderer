@@ -1,11 +1,14 @@
+use std::sync::{Arc, Mutex};
+
 use buddhabrot::{color::{Color, Rgb}, images::Image, sample::sample};
 
 
-const IM_WIDTH: usize = 4096;
-const IM_HEIGHT: usize = 4096;
+const IM_WIDTH: usize = 1024;
+const IM_HEIGHT: usize = 1024;
 const IM_SIZE: usize = IM_WIDTH * IM_HEIGHT;
 const N_ITERATIONS: u32 = 100000;
 const SAMPLE_MULT: u32 = 50;
+const PROGRESS_UPDATE: usize = IM_WIDTH;
 
 const NORMALIZE: bool = false;
 const EXR: bool = true;
@@ -13,8 +16,10 @@ const ROTATE: bool = true;
 const REFLECT: bool = true;
 
 fn main() {
-    let mut im = Image::<Rgb, IM_SIZE, IM_WIDTH>::new();
-    sample(&mut im, N_ITERATIONS, SAMPLE_MULT);
+    let im = Arc::new(Mutex::new(Image::<Rgb>::new(IM_SIZE, IM_WIDTH)));
+    sample(im.clone(), N_ITERATIONS, SAMPLE_MULT, PROGRESS_UPDATE);
+
+    let mut im = im.lock().unwrap();
 
     if NORMALIZE {
         let mut max = Rgb::new(0.0, 0.0, 0.0);
