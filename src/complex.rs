@@ -1,5 +1,6 @@
 use std::ops::{Add, Div, Mul, Sub};
 
+#[derive(Clone, Copy, Debug)]
 pub struct Complex<T> {
     pub re: T,
     pub im: T,
@@ -91,3 +92,61 @@ impl<T: Clone + Copy + Div<T, Output = T> + Add<T, Output = T> + Sub<T, Output =
         }
     }
 }
+
+impl<T> From<(T, T)> for Complex<T> {
+    fn from(value: (T, T)) -> Self {
+        Complex::new(value.0, value.1)
+    }
+}
+
+impl<T> From<Complex<T>> for (T, T) {
+    fn from(value: Complex<T>) -> Self {
+        (value.re, value.im)
+    }
+}
+
+impl<T: Hypot> Complex<T> {
+    /// Computes the absolute value (magnitude) of a complex number.
+    #[inline]
+    pub fn abs(self) -> T {
+        self.re.hypotenuse(self.im)
+    }
+}
+
+
+pub trait Hypot {
+    fn hypotenuse(self, rhs: Self) -> Self;
+}
+
+impl Hypot for f32 {
+    fn hypotenuse(self, rhs: Self) -> Self {
+        f32::hypot(self, rhs)
+    }
+}
+
+impl Hypot for f64 {
+    fn hypotenuse(self, rhs: Self) -> Self {
+        f64::hypot(self, rhs)
+    }
+}
+
+
+macro_rules! impl_op_real {
+    ($($op:tt, $fn:ident, $trait:ident);*) => {
+        $(
+            impl<T: Clone + Copy + $trait<T, Output = T>> $trait<T> for Complex<T> {
+                type Output = Self;
+
+                #[inline]
+                fn $fn(self, rhs: T) -> Self::Output {
+                    Self {
+                        re: self.re $op rhs,
+                        im: self.im $op rhs,
+                    }
+                }
+            }
+        )*
+    }
+}
+
+impl_op_real!(+, add, Add; -, sub, Sub; *, mul, Mul; /, div, Div);
