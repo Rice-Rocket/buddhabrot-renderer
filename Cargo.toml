@@ -10,6 +10,14 @@ rand = "0.8.5"
 exr = "1.72.0"
 image = "0.25.1"
 
+[dev-dependencies]
+criterion = "0.5.1"
+
 
 [profile.release]
 lto = true
+
+
+[[bench]]
+name = "buddha"
+harness = false

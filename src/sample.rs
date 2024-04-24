@@ -26,10 +26,12 @@ pub fn sample<const D: usize, const W: usize>(im: &mut Image<Rgb, D, W>, n: u32,
 }
 
 
+#[inline]
 fn transform(c: Complex<f32>) -> Complex<f32> {
     c
 }
 
+#[inline]
 fn transform_inverse(c: Complex<f32>) -> Complex<f32> {
     c
 }

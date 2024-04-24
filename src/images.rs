@@ -3,14 +3,14 @@ use std::slice::{Iter, IterMut};
 use crate::color::Color;
 
 pub struct Image<T: Color, const D: usize, const W: usize> {
-    data: Box<[T; D]>
+    data: Vec<T>
 }
 
 impl<T: Color + Clone + Copy, const D: usize, const W: usize> Image<T, D, W> {
     /// Creates a new, blank image.
     #[inline]
     pub fn new() -> Image<T, D, W> {
-        Self { data: Box::new([T::empty(); D]) }
+        Self { data: vec![T::empty(); D] }
     }
 
     /// Gets the value of a pixel at a given `(x, y)` pixel position.
@@ -67,6 +67,12 @@ impl<T: Color + Clone + Copy, const D: usize, const W: usize> Image<T, D, W> {
     #[allow(dead_code)]
     pub fn enumerate_pixels_mut(&mut self) -> EnumeratePixelsMut<T, D, W> {
         EnumeratePixelsMut { iter: self.data.iter_mut(), index: 0 }
+    }
+}
+
+impl<T: Color + Clone + Copy, const D: usize, const W: usize> Default for Image<T, D, W> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

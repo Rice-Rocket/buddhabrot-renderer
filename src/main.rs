@@ -1,18 +1,11 @@
-use color::{Color, Rgb};
-use images::Image;
-use sample::sample;
-
-mod complex;
-mod images;
-mod color;
-mod sample;
+use buddhabrot::{color::{Color, Rgb}, images::Image, sample::sample};
 
 
-const IM_WIDTH: usize = 2048;
-const IM_HEIGHT: usize = 2048;
+const IM_WIDTH: usize = 4096;
+const IM_HEIGHT: usize = 4096;
 const IM_SIZE: usize = IM_WIDTH * IM_HEIGHT;
 const N_ITERATIONS: u32 = 100000;
-const SAMPLE_MULT: u32 = 20;
+const SAMPLE_MULT: u32 = 50;
 
 const NORMALIZE: bool = false;
 const EXR: bool = true;
