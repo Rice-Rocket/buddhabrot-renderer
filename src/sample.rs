@@ -21,7 +21,7 @@ pub fn sample<const D: usize, const W: usize>(im: &mut Image<Rgb, D, W>, n: u32,
             im.add(px.map(|x| x as usize).into(), Rgb::new(1.0, 1.0, 1.0));
         }
 
-        print!("\rpixel: {}/{}", i, D * m as usize);
+        print!("\rfinished: {:.2}%", i as f32 / (D * m as usize) as f32 * 100.0);
     }
 }
 

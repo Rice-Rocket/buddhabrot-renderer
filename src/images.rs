@@ -26,6 +26,12 @@ impl<T: Color + Clone + Copy, const D: usize, const W: usize> Image<T, D, W> {
         self.data[px.1 * W + px.0] = col;
     }
 
+    /// Swaps two pixels
+    #[inline]
+    pub fn swap(&mut self, p1: (usize, usize), p2: (usize, usize)) {
+        self.data.swap(p1.1 * W + p1.0, p2.1 * W + p2.0);
+    }
+
     /// Adds to the value of a pixel at a given `(x, y)` pixel position.
     #[inline]
     pub fn add(&mut self, px: (usize, usize), col: T) {

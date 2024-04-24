@@ -8,14 +8,16 @@ mod color;
 mod sample;
 
 
-const IM_WIDTH: usize = 1024;
-const IM_HEIGHT: usize = 1024;
+const IM_WIDTH: usize = 2048;
+const IM_HEIGHT: usize = 2048;
 const IM_SIZE: usize = IM_WIDTH * IM_HEIGHT;
 const N_ITERATIONS: u32 = 100000;
 const SAMPLE_MULT: u32 = 20;
 
 const NORMALIZE: bool = false;
 const EXR: bool = true;
+const ROTATE: bool = true;
+const REFLECT: bool = true;
 
 fn main() {
     let mut im = Image::<Rgb, IM_SIZE, IM_WIDTH>::new();
@@ -31,6 +33,27 @@ fn main() {
             pixel.r /= max.r;
             pixel.g /= max.g;
             pixel.b /= max.b;
+        }
+    }
+
+    if REFLECT {
+        for i in 0..IM_SIZE / 2 {
+            let x = i % IM_WIDTH;
+            let y = i / IM_WIDTH;
+            let c1 = im.get((x, y));
+            let c2 = im.get((x, IM_HEIGHT - y - 1));
+            im.add((x, IM_HEIGHT - y - 1), c1);
+            im.add((x, y), c2);
+        }
+    }
+
+    if ROTATE {
+        for i in 0..IM_SIZE {
+            let x = i % IM_WIDTH;
+            let y = i / IM_WIDTH;
+            if x > y {
+                im.swap((x, y), (y, x));
+            }
         }
     }
 
