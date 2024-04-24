@@ -7,11 +7,13 @@ pub struct Complex<T> {
 
 impl<T> Complex<T> {
     /// Creates a new instance of `Complex` with the given real and imaginary parts.
+    #[inline]
     pub fn new(re: T, im: T) -> Complex<T> {
         Self { re, im }
     }
     
     /// Maps a function over the real and imaginary parts of a complex number.
+    #[inline]
     pub fn map<F: Fn(T) -> U, U>(self, f: F) -> Complex<U> {
         Complex::<U> {
             re: f(self.re),
@@ -20,6 +22,7 @@ impl<T> Complex<T> {
     }
 
     /// Zips two complex numbers together.
+    #[inline]
     pub fn zip<U>(self, rhs: Complex<U>) -> Complex<(T, U)> {
         Complex::<(T, U)> {
             re: (self.re, rhs.re),
@@ -41,6 +44,7 @@ impl<T: Add<T, Output = T>> Add for Complex<T> {
     type Output = Self;
 
     /// Adds two complex numbers together.
+    #[inline]
     fn add(self, rhs: Self) -> Self::Output {
         Self {
             re: self.re + rhs.re,
@@ -53,6 +57,7 @@ impl<T: Sub<T, Output = T>> Sub for Complex<T> {
     type Output = Self;
 
     /// Subtracts one complex number from another.
+    #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
         Self {
             re: self.re - rhs.re,
@@ -65,6 +70,7 @@ impl<T: Clone + Copy + Mul<T, Output = T> + Add<T, Output = T> + Sub<T, Output =
     type Output = Self;
 
     /// Computes the product of two complex numbers.
+    #[inline]
     fn mul(self, rhs: Self) -> Self::Output {
         Self {
             re: self.re * rhs.re - self.im * rhs.im,
@@ -77,6 +83,7 @@ impl<T: Clone + Copy + Div<T, Output = T> + Add<T, Output = T> + Sub<T, Output =
     type Output = Self;
 
     /// Performs complex division on two complex numbers.
+    #[inline]
     fn div(self, rhs: Self) -> Self::Output {
         Self {
             re: (self.re * rhs.re + self.im * rhs.im) / (rhs.re * rhs.re + rhs.im * rhs.im),
