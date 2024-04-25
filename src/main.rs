@@ -1,37 +1,40 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
-use buddhabrot::{color::{Color, Rgb}, images::Image, sample::sample};
+use buddhabrot::{color::{Color, Float}, images::Image, sample::sample};
 
 
-const IM_WIDTH: usize = 1024;
-const IM_HEIGHT: usize = 1024;
+const IM_WIDTH: usize = 4096;
+const IM_HEIGHT: usize = 4096;
 const IM_SIZE: usize = IM_WIDTH * IM_HEIGHT;
-const N_ITERATIONS: u32 = 100000;
+const N_ITERATIONS: u32 = 500000;
 const SAMPLE_MULT: u32 = 50;
-const PROGRESS_UPDATE: usize = IM_WIDTH;
+const PROGRESS_UPDATE: usize = IM_WIDTH * 2;
 
 const NORMALIZE: bool = false;
 const EXR: bool = true;
 const ROTATE: bool = true;
 const REFLECT: bool = true;
 
+
+fn normalize<T: Color + Clone + Copy + Send + Sync + 'static>(im: &mut MutexGuard<Image<T>>) {
+    let mut max = T::empty();
+    for pixel in im.pixels() {
+        max = max.max(*pixel);
+    }
+
+    for pixel in im.pixels_mut() {
+        pixel.cdiv_assign(max);
+    }
+}
+
 fn main() {
-    let im = Arc::new(Mutex::new(Image::<Rgb>::new(IM_SIZE, IM_WIDTH)));
+    let im = Arc::new(Mutex::new(Image::<Float>::new(IM_SIZE, IM_WIDTH)));
     sample(im.clone(), N_ITERATIONS, SAMPLE_MULT, PROGRESS_UPDATE);
 
     let mut im = im.lock().unwrap();
 
     if NORMALIZE {
-        let mut max = Rgb::new(0.0, 0.0, 0.0);
-        for pixel in im.pixels() {
-            max = max.max(*pixel);
-        }
-
-        for pixel in im.pixels_mut() {
-            pixel.r /= max.r;
-            pixel.g /= max.g;
-            pixel.b /= max.b;
-        }
+        normalize(&mut im);
     }
 
     if REFLECT {
@@ -60,7 +63,7 @@ fn main() {
             "output/buddhabrot.exr",
             IM_WIDTH, IM_HEIGHT,
             |x, y| {
-                im.get((x, y)).into()
+                im.get((x, y)).to_tuple()
             }
             ).unwrap();
     } else {
@@ -68,7 +71,8 @@ fn main() {
 
         for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
             let c = im.get((x as usize, y as usize)).map(|x| x * 255.0);
-            *pixel = image::Rgb([c.r as u8, c.g as u8, c.b as u8]);
+            let v = c.to_tuple();
+            *pixel = image::Rgb([v.0 as u8, v.1 as u8, v.2 as u8]);
         }
 
         imgbuf.save("output/buddhabrot.png").unwrap();

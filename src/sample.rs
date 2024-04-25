@@ -2,10 +2,10 @@ use rand::{Rng, thread_rng};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::{sync::{Arc, Mutex}, thread};
 
-use crate::{color::Rgb, complex::Complex, images::Image};
+use crate::{color::{Color, ColorChannel}, complex::Complex, images::Image};
 
 
-pub fn sample(im: Arc<Mutex<Image<Rgb>>>, n: u32, m: u32, progress_update: usize) {
+pub fn sample<T: Color + Clone + Copy + Send + Sync + 'static>(im: Arc<Mutex<Image<T>>>, n: u32, m: u32, progress_update: usize) {
     let cpus = num_cpus::get();
     let size = im.lock().unwrap().size;
     let width = im.lock().unwrap().width;
@@ -18,26 +18,37 @@ pub fn sample(im: Arc<Mutex<Image<Rgb>>>, n: u32, m: u32, progress_update: usize
     let mut threads = Vec::new();
 
     for _id in 0..cpus {
+        // Increment the Arc's reference count to move into each thread
         let bar = bar.clone();
         let im = im.clone();
+
         threads.push(thread::spawn(move || {
             let mut rng = thread_rng();
-            let mut subim = Image::<Rgb>::new(size, width);
+            // Create a new thread-local image to prevent blocking
+            let mut subim = Image::<T>::new(size, width);
 
             for i in 0..iters.div_ceil(cpus) {
+                // Generate a random complex number
                 let r1 = rng.gen_range(0f32..1f32) * 4.0 - 2.0;
                 let r2 = rng.gen_range(0f32..1f32) * 4.0 - 2.0;
                 let c = transform(Complex::new(r1, r2));
+
+                // Calculate the path of this complex number over n iterations
                 let trajectory = mandelbrot(c, n);
 
+                // Iterate through each point in the complex number's journey
                 for z in trajectory {
+                    // Convert the complex number to pixel coordinates
                     let p = transform_inverse(z) * 0.25 + 0.5;
                     let px = Complex::new(p.re * width as f32, p.im * (size / width) as f32).map(|x| x as i32);
+                    
+                    // Ensure the complex number is inside the image
                     if !is_inside(width, size, px.into()) {
                         continue;
                     }
 
-                    subim.add(px.map(|x| x as usize).into(), Rgb::new(1.0, 1.0, 1.0));
+                    // Plot the pixel
+                    subim.add(px.map(|x| x as usize).into(), T::one(ColorChannel::Red));
                 }
 
                 if i % progress_update == 0 {
@@ -45,6 +56,7 @@ pub fn sample(im: Arc<Mutex<Image<Rgb>>>, n: u32, m: u32, progress_update: usize
                 }
             }
 
+            // Get a mutable reference to the main image, adding the thread-local iimage to it
             let mut global_im = im.lock().unwrap();
             for (x, y, px) in subim.into_enumerate_pixels() {
                 global_im.add((x, y), px);
@@ -78,12 +90,16 @@ pub fn is_inside(width: usize, size: usize, px: (i32, i32)) -> bool {
 fn mandelbrot(c: Complex<f32>, n: u32) -> Vec<Complex<f32>> {
     let mut z = c;
     let mut sequence = Vec::new();
+
     for _ in 0..n {
         sequence.push(z);
+        // Update z using the Mandelbrot set formula: z = z^2 + c
         z = z * z + c;
-        if z.abs() > 2.0 {
+        // If z escapes the Mandelbrot set, return the sequence
+        if z.abs() > 2.0 { 
             return sequence;
-        }
+         }
     }
+    // If the loop completes without escaping, return an empty vector
     Vec::new()
 }

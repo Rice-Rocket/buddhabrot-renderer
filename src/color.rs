@@ -1,4 +1,12 @@
-type Float = f32;
+pub type Float = f32;
+
+#[derive(Clone, Copy, Debug)]
+pub enum ColorChannel {
+    Red,
+    Green,
+    Blue,
+    Alpha,
+}
 
 
 pub trait Color {
@@ -6,6 +14,40 @@ pub trait Color {
     fn add(&mut self, rhs: Self);
     fn max(self, rhs: Self) -> Self;
     fn map(self, f: impl Fn(Float) -> Float) -> Self;
+    fn one(channel: ColorChannel) -> Self;
+    fn cdiv_assign(&mut self, rhs: Self);
+    fn to_tuple(self) -> (Float, Float, Float);
+}
+
+impl Color for Float {
+    #[inline]
+    fn empty() -> Self {
+        0.0
+    }
+    #[inline]
+    fn add(&mut self, rhs: Self) {
+        *self += rhs
+    }
+    #[inline]
+    fn max(self, rhs: Self) -> Self {
+        self.max(rhs)
+    }
+    #[inline]
+    fn map(self, f: impl Fn(Float) -> Float) -> Self {
+        f(self)
+    }
+    #[inline]
+    fn one(_channel: ColorChannel) -> Self {
+        1.0
+    }
+    #[inline]
+    fn cdiv_assign(&mut self, rhs: Self) {
+        *self /= rhs
+    }
+    #[inline]
+    fn to_tuple(self) -> (Float, Float, Float) {
+        (self, self, self)
+    }
 }
 
 
@@ -67,6 +109,28 @@ impl Color for Rgb {
             g: f(self.g),
             b: f(self.b),
         }
+    }
+
+    #[inline]
+    fn one(channel: ColorChannel) -> Self {
+        match channel {
+            ColorChannel::Red => Self::new(1.0, 0.0, 0.0),
+            ColorChannel::Green => Self::new(0.0, 1.0, 0.0),
+            ColorChannel::Blue => Self::new(0.0, 0.0, 1.0),
+            _ => panic!("color channel {:?} is not valid for Rgb", channel),
+        }
+    }
+
+    #[inline]
+    fn cdiv_assign(&mut self, rhs: Self) {
+        self.r /= rhs.r;
+        self.g /= rhs.g;
+        self.b /= rhs.b;
+    }
+
+    #[inline]
+    fn to_tuple(self) -> (Float, Float, Float) {
+        self.into()
     }
 }
 
@@ -133,5 +197,28 @@ impl Color for Rgba {
             b: f(self.b),
             a: f(self.a),
         }
+    }
+
+    #[inline]
+    fn one(channel: ColorChannel) -> Self {
+        match channel {
+            ColorChannel::Red => Self::new(1.0, 0.0, 0.0, 0.0),
+            ColorChannel::Green => Self::new(0.0, 1.0, 0.0, 0.0),
+            ColorChannel::Blue => Self::new(0.0, 0.0, 1.0, 0.0),
+            ColorChannel::Alpha => Self::new(0.0, 0.0, 0.0, 1.0),
+        }
+    }
+
+    #[inline]
+    fn cdiv_assign(&mut self, rhs: Self) {
+        self.r /= rhs.r;
+        self.g /= rhs.g;
+        self.b /= rhs.b;
+        self.a /= rhs.a;
+    }
+
+    #[inline]
+    fn to_tuple(self) -> (Float, Float, Float) {
+        (self.r, self.g, self.b)
     }
 }
