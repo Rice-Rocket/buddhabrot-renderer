@@ -19,3 +19,8 @@ For more information, visit:
 - Multithreading
 - Support for both EXR and PNG image formats
 - The three-color Buddhabrot (Nebulabrot)
+
+
+## Screenshots
+
+![Buddhabrot 4k-res 50x-samples 500k-iters colorless](./screenshots/processed-4k-50x-500k-colorless.png)
