@@ -10,6 +10,7 @@ pub fn sample<T: Color + Clone + Copy + Send + Sync + 'static>(im: Arc<Mutex<Ima
     let size = im.lock().unwrap().size;
     let width = im.lock().unwrap().width;
     let iters = size * m as usize;
+    let thread_progress_up = progress_update / cpus;
 
     let multiprogress = MultiProgress::new();
     let style = ProgressStyle::with_template("{spinner:.green} [{elapsed}] [{bar:50.white/blue}] {pos}/{len} ({eta})").unwrap().progress_chars("=> ").tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏");
@@ -18,13 +19,14 @@ pub fn sample<T: Color + Clone + Copy + Send + Sync + 'static>(im: Arc<Mutex<Ima
 
     let mut threads = Vec::new();
 
-    for _id in 0..cpus {
+    for id in 0..cpus {
         // Increment the Arc's reference count to move into each thread
         let bar = bar.clone();
         let im = im.clone();
 
         threads.push(thread::spawn(move || {
             let mut rng = thread_rng();
+            let thread_progress_offset = id * thread_progress_up;
             // Create a new thread-local image to prevent blocking
             let mut subim = Image::<T>::new(size, width);
 
@@ -52,7 +54,8 @@ pub fn sample<T: Color + Clone + Copy + Send + Sync + 'static>(im: Arc<Mutex<Ima
                     subim.add(px.map(|x| x as usize).into(), T::one(ColorChannel::Red));
                 }
 
-                if i != 0 && i % progress_update == 0 {
+                // Update the progress bar if needed
+                if i != 0 && (i + thread_progress_offset) % progress_update == 0 {
                     bar.inc(progress_update as u64)
                 }
             }

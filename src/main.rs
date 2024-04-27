@@ -338,7 +338,7 @@ fn main() -> clap::error::Result<(), clap::Error> {
                 },
             };
             let elapsed = start_time.elapsed();
-            println!("Finished rendering buddhabrot in {}", humantime::format_duration(std::time::Duration::new(elapsed.as_secs(), 0)));
+            println!("Finished rendering buddhabrot in {}.", humantime::format_duration(std::time::Duration::new(elapsed.as_secs(), 0)));
             
             if normalize {
                 normalize_im(&mut im);
