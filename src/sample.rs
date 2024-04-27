@@ -14,6 +14,7 @@ pub fn sample<T: Color + Clone + Copy + Send + Sync + 'static>(im: Arc<Mutex<Ima
     let multiprogress = MultiProgress::new();
     let style = ProgressStyle::with_template("{spinner:.green} [{elapsed}] [{bar:50.white/blue}] {pos}/{len} ({eta})").unwrap().progress_chars("=> ").tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏");
     let bar = multiprogress.add(ProgressBar::new(iters as u64).with_style(style));
+    bar.inc(0);
 
     let mut threads = Vec::new();
 
@@ -51,7 +52,7 @@ pub fn sample<T: Color + Clone + Copy + Send + Sync + 'static>(im: Arc<Mutex<Ima
                     subim.add(px.map(|x| x as usize).into(), T::one(ColorChannel::Red));
                 }
 
-                if i % progress_update == 0 {
+                if i != 0 && i % progress_update == 0 {
                     bar.inc(progress_update as u64)
                 }
             }

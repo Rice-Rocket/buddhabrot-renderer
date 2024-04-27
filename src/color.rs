@@ -5,7 +5,6 @@ pub enum ColorChannel {
     Red,
     Green,
     Blue,
-    Alpha,
 }
 
 
@@ -16,7 +15,7 @@ pub trait Color {
     fn map(self, f: impl Fn(Float) -> Float) -> Self;
     fn one(channel: ColorChannel) -> Self;
     fn cdiv_assign(&mut self, rhs: Self);
-    fn to_tuple(self) -> (Float, Float, Float);
+    fn to_tuple_rgb(self) -> (Float, Float, Float);
 }
 
 impl Color for Float {
@@ -45,8 +44,86 @@ impl Color for Float {
         *self /= rhs
     }
     #[inline]
-    fn to_tuple(self) -> (Float, Float, Float) {
+    fn to_tuple_rgb(self) -> (Float, Float, Float) {
         (self, self, self)
+    }
+}
+
+
+#[derive(Clone, Copy, Debug)]
+pub struct Rg {
+    pub r: Float,
+    pub g: Float,
+}
+
+impl Rg { 
+    /// Constructs a new RG color from red and green component values.
+    #[inline]
+    pub fn new(r: Float, g: Float) -> Rg {
+        Self { r, g }
+    }
+}
+
+impl From<(Float, Float)> for Rg {
+    #[inline]
+    fn from(value: (Float, Float)) -> Rg {
+        Self { r: value.0, g: value.1 }
+    }
+}
+
+impl From<Rgb> for (Float, Float) {
+    #[inline]
+    fn from(value: Rgb) -> Self {
+        (value.r, value.g)
+    }
+}
+
+impl Color for Rg {
+    #[inline]
+    fn empty() -> Self {
+        Self::new(0.0, 0.0)
+    }
+
+    #[inline]
+    fn add(&mut self, rhs: Self) {
+        self.r += rhs.r;
+        self.g += rhs.g;
+    }
+
+    #[inline]
+    fn max(self, rhs: Self) -> Self {
+        Self {
+            r: self.r.max(rhs.r),
+            g: self.g.max(rhs.g),
+        }
+    }
+
+    #[inline]
+    fn map(self, f: impl Fn(Float) -> Float) -> Self {
+        Self {
+            r: f(self.r),
+            g: f(self.g),
+        }
+    }
+
+    #[inline]
+    fn one(channel: ColorChannel) -> Self {
+        match channel {
+            ColorChannel::Red => Self::new(1.0, 0.0),
+            ColorChannel::Green => Self::new(0.0, 1.0),
+            _ => panic!("color channel {:?} is not valid for Rg", channel),
+        }
+    }
+
+    #[inline]
+    fn cdiv_assign(&mut self, rhs: Self) {
+        self.r /= rhs.r;
+        self.g /= rhs.g;
+    }
+
+    #[inline]
+    fn to_tuple_rgb(self) -> (Float, Float, Float) {
+        (self.r, self.g, 0.0)
     }
 }
 
@@ -117,7 +194,6 @@ impl Color for Rgb {
             ColorChannel::Red => Self::new(1.0, 0.0, 0.0),
             ColorChannel::Green => Self::new(0.0, 1.0, 0.0),
             ColorChannel::Blue => Self::new(0.0, 0.0, 1.0),
-            _ => panic!("color channel {:?} is not valid for Rgb", channel),
         }
     }
 
@@ -129,96 +205,7 @@ impl Color for Rgb {
     }
 
     #[inline]
-    fn to_tuple(self) -> (Float, Float, Float) {
+    fn to_tuple_rgb(self) -> (Float, Float, Float) {
         self.into()
-    }
-}
-
-
-#[derive(Clone, Copy, Debug)]
-pub struct Rgba {
-    pub r: Float,
-    pub g: Float,
-    pub b: Float,
-    pub a: Float,
-}
-
-impl Rgba {
-    /// Constructs a new RGBA color from red, green, blue, and alpha component values.
-    #[inline]
-    pub fn new(r: Float, g: Float, b: Float, a: Float) -> Rgba {
-        Self { r, g, b, a }
-    }
-}
-
-impl From<(Float, Float, Float, Float)> for Rgba {
-    #[inline]
-    fn from(value: (Float, Float, Float, Float)) -> Rgba {
-        Self { r: value.0, g: value.1, b: value.2, a: value.3 }
-    }
-}
-
-impl From<Rgba> for (Float, Float, Float, Float) {
-    #[inline]
-    fn from(value: Rgba) -> Self {
-        (value.r, value.g, value.b, value.a)
-    }
-}
-
-impl Color for Rgba {
-    #[inline]
-    fn empty() -> Self {
-        Self::new(0.0, 0.0, 0.0, 0.0)
-    }
-
-    #[inline]
-    fn add(&mut self, rhs: Self) {
-        self.r += rhs.r;
-        self.g += rhs.g;
-        self.b += rhs.b;
-        self.a += rhs.a;
-    }
-
-    #[inline]
-    fn max(self, rhs: Self) -> Self {
-        Self {
-            r: self.r.max(rhs.r),
-            g: self.g.max(rhs.g),
-            b: self.b.max(rhs.b),
-            a: self.a.max(rhs.a),
-        }
-    }
-
-    #[inline]
-    fn map(self, f: impl Fn(Float) -> Float) -> Self {
-        Self {
-            r: f(self.r),
-            g: f(self.g),
-            b: f(self.b),
-            a: f(self.a),
-        }
-    }
-
-    #[inline]
-    fn one(channel: ColorChannel) -> Self {
-        match channel {
-            ColorChannel::Red => Self::new(1.0, 0.0, 0.0, 0.0),
-            ColorChannel::Green => Self::new(0.0, 1.0, 0.0, 0.0),
-            ColorChannel::Blue => Self::new(0.0, 0.0, 1.0, 0.0),
-            ColorChannel::Alpha => Self::new(0.0, 0.0, 0.0, 1.0),
-        }
-    }
-
-    #[inline]
-    fn cdiv_assign(&mut self, rhs: Self) {
-        self.r /= rhs.r;
-        self.g /= rhs.g;
-        self.b /= rhs.b;
-        self.a /= rhs.a;
-    }
-
-    #[inline]
-    fn to_tuple(self) -> (Float, Float, Float) {
-        (self.r, self.g, self.b)
     }
 }

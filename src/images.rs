@@ -2,6 +2,7 @@ use std::{slice::{Iter, IterMut}, vec::IntoIter};
 
 use crate::color::Color;
 
+#[derive(Debug, Clone)]
 pub struct Image<T: Color> {
     data: Vec<T>,
     pub size: usize,
@@ -15,10 +16,22 @@ impl<T: Color + Clone + Copy> Image<T> {
         Self { data: vec![T::empty(); size], size, width }
     }
 
+    /// Creates a new image with all pixels set to `col`.
+    #[inline]
+    pub fn new_fill(size: usize, width: usize, col: T) -> Image<T> {
+        Self { data: vec![col; size], size, width }
+    }
+
     /// Gets the value of a pixel at a given `(x, y)` pixel position.
     #[inline]
     pub fn get(&self, px: (usize, usize)) -> T {
         self.data[px.1 * self.width + px.0]
+    }
+
+    /// Sets the value of a pixel at a given `(x, y)` pixel position.
+    #[inline]
+    pub fn set(&mut self, px: (usize, usize), col: T) {
+        self.data[px.1 * self.width + px.0] = col;
     }
 
     /// Swaps two pixels
