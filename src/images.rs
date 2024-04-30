@@ -143,7 +143,7 @@ impl<'a, T: Color> Iterator for EnumeratePixels<'a, T> {
         }
         self.index += 1;
 
-        Some((self.index % self.width, self.index / self.width, self.iter.next()?))
+        Some(((self.index - 1) % self.width, (self.index - 1) / self.width, self.iter.next()?))
     }
 }
 
@@ -164,6 +164,6 @@ impl<'a, T: Color> Iterator for EnumeratePixelsMut<'a, T> {
         }
         self.index += 1;
 
-        Some((self.index % self.width, self.index / self.width, self.iter.next()?))
+        Some(((self.index - 1) % self.width, (self.index - 1) / self.width, self.iter.next()?))
     }
 }

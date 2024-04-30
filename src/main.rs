@@ -107,6 +107,40 @@ fn write_rgb(im: Image<Rgb>, mut file: PathBuf, png: bool) {
     }
 }
 
+fn load_image(input_file: &PathBuf) -> clap::error::Result<Image<Rgb>, clap::Error> {
+    Ok(if let Some(extension) = input_file.extension() {
+        if extension == "exr" {
+            exr::image::read::read_first_rgba_layer_from_file(
+                input_file,
+                |resolution, _| {
+                    Image::<Rgb>::new(resolution.width() * resolution.height(), resolution.width())
+                },
+                |image: &mut Image<Rgb>, pos: exr::math::Vec2<usize>, (r, g, b, _a): (f32, f32, f32, f32)| {
+                    image.set((pos.x(), pos.y()), Rgb::new(r, g, b))
+                }
+                ).unwrap().layer_data.channel_data.pixels
+        } else if extension == "png" {
+            let png = image::open(input_file).unwrap();
+            let mut im = Image::<Rgb>::new((png.width() * png.height()) as usize, png.width() as usize);
+
+            for (x, y, px) in im.enumerate_pixels_mut() {
+                let c = png.get_pixel(x as u32, y as u32);
+                *px = Rgb::new(c.0[0] as f32 / 255.0, c.0[1] as f32 / 255.0, c.0[2] as f32 / 255.0);
+            }
+
+            im
+        } else {
+            let err = Cli::command().error(ErrorKind::Io, format!("file {:?} is invalid; expected either exr or png file", input_file));
+            err.print()?;
+            return Err(err);
+        }
+    } else {
+        let err = Cli::command().error(ErrorKind::Io, format!("file {:?} is invalid; expected either exr or png file", input_file));
+        err.print()?;
+        return Err(err)
+    })
+}
+
 
 #[derive(Parser)]
 #[command(version, author, about)]
@@ -204,6 +238,27 @@ enum Commands {
         /// Whether or not to normalize all pixel values between 0-1 before writing the image. 
         #[arg(long)]
         normalize: bool,
+    },
+    Fuse {
+        /// The full input file path to fuse into the red channel, including the extension. 
+        #[arg(short, long, value_name = "RED_CHANNEL_FILE")]
+        red_file: PathBuf,
+
+        /// The full input file path to fuse into the blue channel, including the extension. 
+        #[arg(short, long, value_name = "GREEN_CHANNEL_FILE")]
+        green_file: Option<PathBuf>,
+
+        /// The full input file path to fuse into the blue channel, including the extension. 
+        #[arg(short, long, value_name = "BLUE_CHANNEL_FILE")]
+        blue_file: Option<PathBuf>,
+
+        /// The output file path, excluding the extension. When unspecified, overwrites the original file.
+        #[arg(short, long, value_name = "OUTFILE")]
+        file: PathBuf,
+
+        /// Whether or not to output the file in PNG format.
+        #[arg(long)]
+        png: bool,
     },
 }
 
@@ -369,35 +424,7 @@ fn main() -> clap::error::Result<(), clap::Error> {
             clamp,
             normalize,
         } => {
-            let mut im = if let Some(extension) = input_file.extension() {
-                if extension == "exr" {
-                    exr::image::read::read_first_rgba_layer_from_file(
-                        &input_file,
-                        |resolution, _| {
-                            Image::<Rgb>::new(resolution.width() * resolution.height(), resolution.width())
-                        },
-                        |image: &mut Image<Rgb>, pos: exr::math::Vec2<usize>, (r, g, b, _a): (f32, f32, f32, f32)| {
-                            image.set((pos.x(), pos.y()), Rgb::new(r, g, b))
-                        }
-                    ).unwrap().layer_data.channel_data.pixels
-                } else if extension == "png" {
-                    let png = image::open(&input_file).unwrap();
-                    let mut im = Image::<Rgb>::new((png.width() * png.height()) as usize, png.width() as usize);
-
-                    for (x, y, px) in im.enumerate_pixels_mut() {
-                        let c = png.get_pixel(x as u32, y as u32);
-                        *px = Rgb::new(c.0[0] as f32 / 255.0, c.0[1] as f32 / 255.0, c.0[2] as f32 / 255.0);
-                    }
-
-                    im
-                } else {
-                    let err = Cli::command().error(ErrorKind::Io, format!("file {:?} is invalid; expected either exr or png file", input_file));
-                    return Ok(err.print()?)
-                }
-            } else {
-                let err = Cli::command().error(ErrorKind::Io, format!("file {:?} is invalid; expected either exr or png file", input_file));
-                return Ok(err.print()?)
-            };
+            let mut im = load_image(&input_file)?;
 
             if png || normalize {
                 normalize_im(&mut im);
@@ -476,6 +503,50 @@ fn main() -> clap::error::Result<(), clap::Error> {
             }
 
             write_rgb(im, out_file.to_path_buf(), png);
+        },
+        Commands::Fuse {
+            red_file,
+            green_file,
+            blue_file,
+            file,
+            png,
+        } => {
+            let red_im = load_image(&red_file)?;
+            let mut im = Image::<Rgb>::new(red_im.size, red_im.width);
+
+            for (x, y, px) in im.enumerate_pixels_mut() {
+                px.r = red_im.get((x, y)).r;
+            }
+
+            if let Some(path) = green_file {
+                let green_im = load_image(&path)?;
+                
+                if green_im.width != im.width || green_im.size != im.size {
+                    let err = Cli::command().error(ErrorKind::Io, format!("file {:?} has different dimensions than {:?}", path, red_file));
+                    err.print()?;
+                    return Err(err);
+                }
+
+                for (x, y, px) in im.enumerate_pixels_mut() {
+                    px.g = green_im.get((x, y)).r;
+                }
+            }
+
+            if let Some(path) = blue_file {
+                let blue_im = load_image(&path)?;
+                
+                if blue_im.width != im.width || blue_im.size != im.size {
+                    let err = Cli::command().error(ErrorKind::Io, format!("file {:?} has different dimensions than {:?}", path, red_file));
+                    err.print()?;
+                    return Err(err);
+                }
+
+                for (x, y, px) in im.enumerate_pixels_mut() {
+                    px.b = blue_im.get((x, y)).r;
+                }
+            }
+
+            write_rgb(im, file, png);
         }
     }
 
